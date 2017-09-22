@@ -2,6 +2,7 @@
 # -*- coding:utf-8 -*-
 
 import os
+import sys
 import re
 import urllib
 import json
@@ -20,6 +21,7 @@ class Crawler:
     # 睡眠时长
     __time_sleep = 0.1
     __amount = 0
+    __n_per_page = 60
     __start_amount = 0
     __counter = 0
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:23.0) Gecko/20100101 Firefox/23.0'}
@@ -50,7 +52,7 @@ class Crawler:
                 print("产生未知错误，放弃保存")
                 continue
             else:
-                print("小黄图+1,已有" + str(self.__counter) + "张小黄图")
+                print("图+1,已有" + str(self.__counter) + "张图")
                 self.__counter += 1
         return
 
@@ -76,7 +78,7 @@ class Crawler:
         while pn < self.__amount:
 
             url = 'http://image.baidu.com/search/avatarjson?tn=resultjsonavatarnew&ie=utf-8&word=' + search + '&cg=girl&pn=' + str(
-                pn) + '&rn=60&itg=0&z=0&fr=&width=&height=&lm=-1&ic=0&s=0&st=-1&gsm=1e0000001e'
+                pn) + '&rn='+str(self.__n_per_page)+'&itg=0&z=0&fr=&width=&height=&lm=-1&ic=0&s=0&st=-1&gsm=1e0000001e'
             # 设置header防ban
             try:
                 time.sleep(self.time_sleep)
@@ -98,27 +100,40 @@ class Crawler:
                 self.__save_image(rsp_data, word)
                 # 读取下一页
                 print("下载下一页")
-                pn += 60
+                pn += self.__n_per_page
             finally:
                 page.close()
         print("下载任务结束")
         return
 
-    def start(self, word, spider_page_num=1, start_page=1):
+    def start(self, word, spider_page_num=1, start_page=1,n_per_page=60):
         """
         爬虫入口
         :param word: 抓取的关键词
-        :param spider_page_num: 需要抓取数据页数 总抓取图片数量为 页数x60
+        :param spider_page_num: 需要抓取数据页数 总抓取图片数量为 页数xn_per_page
         :param start_page:起始页数
         :return:
         """
-        self.__start_amount = (start_page - 1) * 60
-        self.__amount = spider_page_num * 60 + self.__start_amount
+        self.__n_per_page = n_per_page
+        self.__start_amount = (start_page - 1) * self.__n_per_page 
+        self.__amount = spider_page_num * self.__n_per_page + self.__start_amount
         self.__get_images(word)
 
 
 if __name__ == '__main__':
-    crawler = Crawler(0.05)
-    # crawler.start('美女', 1, 2)
-    crawler.start('二次元 美女', 3, 3)
-    # crawler.start('帅哥', 5)
+    if(len(sys.argv) > 1):
+        names = sys.argv[1:]
+    else: 
+        f=open('names2.txt')
+        names=f.read()
+        f.close()
+        names = names.split()
+        downloaded = os.listdir('./')
+        to_down = [name  for name in names if name not in downloaded]
+        print(to_down)
+        names = to_down
+
+    for name in names:
+        print(name)
+        crawler = Crawler(0.05)
+        crawler.start(name, 1, 1,n_per_page=10)
